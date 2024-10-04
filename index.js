@@ -1,0 +1,1 @@
+console.log("Ayo pergi ke Malang")

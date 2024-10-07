@@ -3,6 +3,7 @@ const fs = require("fs");
 const express = require("express");
 
 const app = express();
+const { Product } = require("./models");
 
 // Middleware to read JSON from request body (client, FE, etc.)
 app.use(express.json());
@@ -22,20 +23,19 @@ app.get("/ferdi", (req, res) => {
   });
 });
 
-const cars = JSON.parse(
-  fs.readFileSync(`${__dirname}/data/cars.json`, "utf-8")
-);
+//const cars = JSON.parse(
+//fs.readFileSync(`${__dirname}/data/cars.json`, "utf-8")
+//);
 
 // /api/v1/(collection name) => collection names should be plural (s)
-app.get("/api/v1/cars", (req, res) => {
+app.get("/api/v1/cars", async (req, res) => {
+  const cars = await Product.findAll();
   res.status(200).json({
     status: "Success",
     message: "Success Get Cars Data",
     isSuccess: true,
     totalData: cars.length,
-    data: {
-      cars,
-    },
+    data: cars,
   });
 });
 
@@ -47,20 +47,16 @@ app.post("/api/v1/cars", (req, res) => {
 
   cars.push(newCar);
 
-  fs.writeFile(
-    `${__dirname}/data/cars.json`,
-    JSON.stringify(cars),
-    (err) => {
-      res.status(201).json({
-        status: "Success",
-        message: "Success Add New Car Data",
-        isSuccess: true,
-        data: {
-          car: newCar,
-        },
-      });
-    }
-  );
+  fs.writeFile(`${__dirname}/data/cars.json`, JSON.stringify(cars), (err) => {
+    res.status(201).json({
+      status: "Success",
+      message: "Success Add New Car Data",
+      isSuccess: true,
+      data: {
+        car: newCar,
+      },
+    });
+  });
 });
 
 // Get Cars By ID
@@ -97,45 +93,42 @@ app.patch("/api/v1/cars/:id", (req, res) => {
   const id = req.params.id * 1;
   // Find data by id
   const car = cars.find((i) => i.id === id);
-  // Find index 
-  const carIndex = cars.findIndex((i) => i.id === id)
+  // Find index
+  const carIndex = cars.findIndex((i) => i.id === id);
 
   // Update according to request body (client/frontend)
   // Object assign = using object spread operator
 
-  cars[carIndex] = {...cars[carIndex], ...req.body};
-
+  cars[carIndex] = { ...cars[carIndex], ...req.body };
 
   // Get new data for response API | depends on the need, not mandatory
   const newCar = cars.find((i) => i.id === id);
 
-  if(!car){
+  if (!car) {
     return res.status(404).json({
       status: "Failed",
       message: `Failed To Update Car Data This ${id}`,
       isSuccess: false,
       data: null,
-    })
+    });
   }
   // Write REWRITE DATA JSON into file
-  fs.writeFile(`${__dirname}/data/cars.json`, 
-    JSON.stringify(cars), 
-    (err) => {
+  fs.writeFile(`${__dirname}/data/cars.json`, JSON.stringify(cars), (err) => {
     res.status(201).json({
       status: "Success",
       message: `Success Update Car Data By Id: ${id}`,
       isSuccess: true,
       data: {
-        newCar
-      }
+        newCar,
+      },
     });
   });
-})
+});
 
 // Delete Cars
 app.delete("/api/v1/cars/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  
+
   const { name, year, type } = req.body;
 
   // Find data by id
@@ -143,7 +136,7 @@ app.delete("/api/v1/cars/:id", (req, res) => {
   // Find its index
   const carIndex = cars.findIndex((car) => car.id == id);
   console.log(carIndex);
-  
+
   // Error handling if cars are not found
   if (!car) {
     console.log("No Data");
@@ -156,7 +149,7 @@ app.delete("/api/v1/cars/:id", (req, res) => {
   }
 
   // Perform deletion
-  cars.splice(carIndex, 1)
+  cars.splice(carIndex, 1);
 
   // Write rewrite data json into file
   fs.writeFile(`${__dirname}/data/cars.json`, JSON.stringify(cars), (err) => {
@@ -171,7 +164,6 @@ app.delete("/api/v1/cars/:id", (req, res) => {
     });
   });
 });
-
 
 // Middleware / handler for URLs that cannot be accessed because they do not exist in the application
 // Creating middleware = our own middleware
